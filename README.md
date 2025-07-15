@@ -239,8 +239,8 @@ These insights help businesses optimize pricing, product strategies, marketing e
 
 ## About the Author
 - **Name**: Ahmed Raza  
-- **GitHub**: ahmeddraza  
-- **LinkedIn**: ahmeddraza  
+- **GitHub**: [Ahmed Raza](https://github.com/ahmeddraza)
+- **LinkedIn**: [Ahmed Raza](https://www.linkedin.com/in/ahmeddraza/)  
 - **Email**: ahemdraza810@gmail.com
 
 Feel free to contribute or fork this project to explore further enhancements!
