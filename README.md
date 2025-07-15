@@ -238,10 +238,10 @@ These insights help businesses optimize pricing, product strategies, marketing e
 - Execute each query one by one to generate the outputs
 
 ## About the Author
-- **Name**: [Your Name Here]  
-- **GitHub**: [Your GitHub]  
-- **LinkedIn**: [Your LinkedIn]  
-- **Email**: [Your Email Address]
+- **Name**: Ahmed Raza  
+- **GitHub**: ahmeddraza  
+- **LinkedIn**: ahmeddraza  
+- **Email**: ahemdraza810@gmail.com
 
 Feel free to contribute or fork this project to explore further enhancements!
 
