@@ -1,209 +1,247 @@
-# Superstore Sales Analysis Using SQL
+# Superstore Advanced Sales Analysis Using SQL
 
 ## Project Overview
 
-The goal of this project is to analyze Superstore sales data using SQL queries. The dataset contains information about customer orders, shipping details, regional performance, and product profitability. By executing a series of structured SQL queries, this project aims to extract valuable business insights, reveal customer behavior patterns, and identify trends in sales and profitability.
+This project is a comprehensive SQL-based analysis of the Superstore dataset. It leverages advanced SQL techniques like **CTEs**, **window functions**, **subqueries**, and **aggregation** to uncover key business insights, including customer behavior, product trends, profitability, and operational performance.
 
-### Key Features
+The dataset contains detailed information on sales transactions, customers, products, regions, shipping details, and profit. By querying this data, we extract answers to complex business questions.
 
-1. **Total Orders**: Count the total number of customer orders.
-2. **Profit by Customer Segment**: Measure profit contribution percentage from each segment.
-3. **Delivery Time Analysis**: Calculate average shipping time by customer segment.
-4. **Repeat Customers**: Identify customers who placed more than one order.
-5. **Top Products by Profit**: Rank top 3 most profitable products within each category.
-6. **City-wise Profit Ranking**: Determine the most profitable cities by region.
-7. **Monthly Profit Trend**: Track profit over time and compute cumulative profit.
-8. **Discount Impact**: Compare average profit per product with and without discounts.
-9. **Product Sales Trend**: Detect increasing or decreasing monthly sales trends.
+---
 
-## SQL Query Script and Results
+## Key Business Questions Answered
 
-### 1. **Total Orders**
-
+### 1. **Top 3 Most Profitable Products in Each Product Category**
 ```sql
-SELECT COUNT(*) AS total_orders FROM projects.superstore;
-```
-
-**Output:**
-
-| total\_orders |
-| ------------- |
-| 9994          |
-
-### 2. **Profit Contribution by Segment**
-
-```sql
-SELECT
-  Segment,
-  ROUND(100 * SUM(Profit) / SUM(SUM(Profit)) OVER (), 2) AS profit_percentage
-FROM projects.superstore
-GROUP BY Segment;
-```
-
-### 3. **Average Delivery Time by Segment**
-
-```sql
-SELECT
-  Segment,
-  ROUND(AVG(DATEDIFF(Ship_Date, Order_Date)), 2) AS avg_delivery_days
-FROM projects.superstore
-GROUP BY Segment;
-```
-
-### 4. **Repeat Customers**
-
-```sql
-SELECT
-  Customer_ID,
-  Customer_Name,
-  COUNT(*) AS order_count
-FROM projects.superstore
-GROUP BY Customer_ID, Customer_Name
-HAVING COUNT(*) > 1;
-```
-
-### 5. **Top 3 Profitable Products by Category**
-
-```sql
-SELECT * FROM (
-  SELECT
-    Category, Product_Name,
-    SUM(Profit) AS total_profit,
-    DENSE_RANK() OVER(PARTITION BY Category ORDER BY SUM(Profit) DESC) AS rank_
-  FROM projects.superstore
-  GROUP BY Category, Product_Name
+SELECT *
+FROM (
+    SELECT
+        Category,
+        Product_Name,
+        SUM(Profit) AS Total_Profit,
+        DENSE_RANK() OVER (PARTITION BY Category ORDER BY SUM(Profit) DESC) AS 'rank_'
+    FROM projects.superstore
+    GROUP BY Category, Product_Name
 ) t
-WHERE rank_ <= 3
-ORDER BY Category, rank_;
+WHERE t.rank_ < 4
+ORDER BY Category, rank_ DESC;
 ```
 
-### 6. **Most Profitable Cities by Region**
+---
 
+### 2. **Customers Generating Above-Average Total Profit**
 ```sql
-WITH city_profits AS (
-  SELECT region, city, SUM(profit) AS total_profit
-  FROM projects.superstore
-  GROUP BY region, city
+WITH customer_profit AS (
+    SELECT
+        Customer_Name,
+        SUM(Profit) AS total_profit
+    FROM projects.superstore
+    GROUP BY Customer_Name
 )
+
 SELECT
-  region, city, total_profit,
-  DENSE_RANK() OVER(PARTITION BY region ORDER BY total_profit DESC) AS rank
-FROM city_profits
-ORDER BY region, rank;
+    Customer_Name,
+    total_profit
+FROM customer_profit
+WHERE total_profit > (
+    SELECT AVG(total_profit)
+    FROM customer_profit
+)
+ORDER BY total_profit DESC;
 ```
 
-### 7. **Monthly & Cumulative Profit Trend**
+---
 
+### 3. **Average Delivery Time Per Customer Segment**
 ```sql
-SELECT  
-  YEAR(Order_Date) AS year,
-  MONTHNAME(Order_Date) AS month,
-  ROUND(SUM(Profit), 2) AS total_profit,
-  ROUND(SUM(SUM(Profit)) OVER(ORDER BY YEAR(Order_Date), MONTH(Order_Date)), 2) AS cumulative_profit
+SELECT Segment,  AVG(DATEDIFF(Ship_Date,Order_Date)) AS 'Avg_delivery'
+FROM projects.superstore
+GROUP BY Segment;
+```
+
+---
+
+### 4. **Cumulative Monthly Profit Over Time**
+```sql
+SELECT  YEAR(Order_Date) AS 'year', MONTHNAME(Order_Date) AS 'month_name',
+ROUND(SUM(Profit),3) AS 'total_sum',
+SUM(SUM(Profit)) OVER(ORDER BY YEAR(Order_Date),MONTH(Order_Date)) AS 'cumalative_sum'
 FROM projects.superstore
 GROUP BY YEAR(Order_Date), MONTH(Order_Date), MONTHNAME(Order_Date)
-ORDER BY year, MONTH(Order_Date);
+ORDER BY YEAR(Order_Date), MONTH(Order_Date);
 ```
 
-### 8. **Discount Impact on Profit**
+---
 
+### 5. **City Rankings by Profit Within Each Region**
+```sql
+SELECT region, City, profit_sum,
+DENSE_RANK() OVER(PARTITION BY region ORDER BY profit_sum DESC) AS 'rank'
+FROM (
+    SELECT region, City,
+    SUM(Profit) AS 'profit_sum'
+    FROM projects.superstore
+    GROUP BY region, City
+) AS t
+ORDER BY region, City;
+```
+
+---
+
+### 6. **Best-Selling Sub-Category (by Quantity) in Each Region**
+```sql
+SELECT
+    region,
+    sub_category,
+    quantity_sold,
+    DENSE_RANK() OVER(PARTITION BY region ORDER BY quantity_sold DESC) AS rank_
+FROM (
+    SELECT
+        region,
+        sub_category,
+        SUM(quantity) AS quantity_sold
+    FROM projects.superstore
+    GROUP BY region, sub_category
+) AS t
+ORDER BY region, rank_;
+```
+
+---
+
+### 7. **Average Profit Per Product With and Without Discount**
 ```sql
 WITH with_discount AS (
-  SELECT Product_Name, AVG(Profit) AS avg_profit_with_discount
-  FROM projects.superstore
-  WHERE Discount > 0
-  GROUP BY Product_Name
+    SELECT
+        Product_Name,
+        ROUND(AVG(Profit), 2) AS avg_profit_with_discount
+    FROM projects.superstore
+    WHERE Discount > 0
+    GROUP BY Product_Name
 ),
+
 without_discount AS (
-  SELECT Product_Name, AVG(Profit) AS avg_profit_without_discount
-  FROM projects.superstore
-  WHERE Discount = 0
-  GROUP BY Product_Name
+    SELECT
+        Product_Name,
+        ROUND(AVG(Profit), 2) AS avg_profit_without_discount
+    FROM projects.superstore
+    WHERE Discount = 0
+    GROUP BY Product_Name
 )
+
 SELECT
-  COALESCE(wd.Product_Name, wod.Product_Name) AS Product_Name,
-  wd.avg_profit_with_discount,
-  wod.avg_profit_without_discount
+    COALESCE(wd.Product_Name, wod.Product_Name) AS Product_Name,
+    wd.avg_profit_with_discount,
+    wod.avg_profit_without_discount
 FROM with_discount wd
-LEFT JOIN without_discount wod ON wd.Product_Name = wod.Product_Name
+LEFT JOIN without_discount wod
+    ON wd.Product_Name = wod.Product_Name
+
 UNION
+
 SELECT
-  COALESCE(wd.Product_Name, wod.Product_Name),
-  wd.avg_profit_with_discount,
-  wod.avg_profit_without_discount
+    COALESCE(wd.Product_Name, wod.Product_Name) AS Product_Name,
+    wd.avg_profit_with_discount,
+    wod.avg_profit_without_discount
 FROM without_discount wod
-LEFT JOIN with_discount wd ON wod.Product_Name = wd.Product_Name;
+LEFT JOIN with_discount wd
+    ON wd.Product_Name = wod.Product_Name
+ORDER BY Product_Name;
 ```
 
-### 9. **Product Sales Trend Over Time**
+---
 
+### 8. **Profit Percentage by Segment**
+```sql
+SELECT
+    Segment,
+    ROUND(SUM(Profit), 2) AS segment_profit,
+    ROUND(100 * SUM(Profit) / SUM(SUM(Profit)) OVER (), 2) AS profit_percentage
+FROM projects.superstore
+GROUP BY Segment
+ORDER BY profit_percentage DESC;
+```
+
+---
+
+### 9. **Monthly Sales Trend per Product (Increasing or Decreasing)**
 ```sql
 WITH monthly_sales AS (
-  SELECT
-    Product_Name,
-    DATE_FORMAT(Order_Date, '%Y-%m') AS year_month,
-    SUM(Sales) AS monthly_sales
-  FROM projects.superstore
-  GROUP BY Product_Name, DATE_FORMAT(Order_Date, '%Y-%m')
+    SELECT
+        Product_Name,
+        DATE_FORMAT(Order_Date, '%Y-%m') AS year_months,
+        SUM(Sales) AS monthly_sales
+    FROM projects.superstore
+    GROUP BY Product_Name, DATE_FORMAT(Order_Date, '%Y-%m')
 ),
+
 sales_with_trend AS (
-  SELECT
-    Product_Name,
-    year_month,
-    monthly_sales,
-    LAG(monthly_sales) OVER (PARTITION BY Product_Name ORDER BY year_month) AS prev_month_sales
-  FROM monthly_sales
+    SELECT
+        Product_Name,
+        year_months,
+        monthly_sales,
+        LAG(monthly_sales) OVER (PARTITION BY Product_Name ORDER BY year_months) AS prev_month_sales
+    FROM monthly_sales
 )
+
 SELECT
-  Product_Name,
-  year_month,
-  monthly_sales,
-  prev_month_sales,
-  CASE
-    WHEN prev_month_sales IS NULL THEN 'N/A'
-    WHEN monthly_sales > prev_month_sales THEN 'Increasing'
-    WHEN monthly_sales < prev_month_sales THEN 'Decreasing'
-    ELSE 'Stable'
-  END AS trend
+    Product_Name,
+    year_months,
+    monthly_sales,
+    prev_month_sales,
+    CASE
+        WHEN prev_month_sales IS NULL THEN 'N/A'
+        WHEN monthly_sales > prev_month_sales THEN 'Increasing'
+        WHEN monthly_sales < prev_month_sales THEN 'Decreasing'
+        ELSE 'Stable'
+    END AS trend
 FROM sales_with_trend
-ORDER BY Product_Name, year_month;
+ORDER BY Product_Name, year_months;
+```
+
+---
+
+### 10. **Repeat Customers**
+```sql
+SELECT
+    Customer_ID,
+    Customer_Name
+FROM projects.superstore
+WHERE Customer_ID IN (
+    SELECT Customer_ID
+    FROM projects.superstore
+    GROUP BY Customer_ID
+    HAVING COUNT(*) > 1
+)
+ORDER BY Customer_ID;
 ```
 
 ---
 
 ## Conclusion
 
-This Superstore analysis reveals valuable insights across different business areas:
+This analysis extracts powerful business insights from the Superstore dataset using advanced SQL. Highlights include:
 
-- Corporate segment contributed highest to total profit.
-- Repeat purchases indicate customer loyalty trends.
-- Discounted items typically show lower average profits.
-- Top-selling products and cities vary by region and category.
-- Profitability follows monthly seasonal patterns with cumulative growth.
+- Key customers and their profit contributions
+- Product performance by category, region, and time
+- Shipping and discount effects on profitability
+- Sales trends and customer loyalty insights
 
-These insights can guide marketing decisions, inventory strategies, pricing optimization, and delivery planning.
+These insights help businesses optimize pricing, product strategies, marketing efforts, and delivery operations.
 
 ## Getting Started
 
-### Prerequisites
+### Requirements
+- SQL database (MySQL/PostgreSQL/SQLite)
+- Superstore dataset loaded into a table named `projects.superstore`
 
-- SQL RDBMS: MySQL, PostgreSQL, or SQLite
-- A cleaned version of the Superstore dataset imported as a SQL table (`projects.superstore`)
-
-### Running the Queries
-
-1. Open your SQL editor (MySQL Workbench, pgAdmin, etc.)
-2. Connect to the database containing the Superstore dataset
-3. Run each query from the script above to explore various metrics
-
-## Contributing
-
-If you have suggestions or want to add more advanced queries or visualizations, feel free to fork and submit a pull request!
+### How to Run
+- Use MySQL Workbench, pgAdmin, or DB Browser for SQLite
+- Execute each query one by one to generate the outputs
 
 ## About the Author
+- **Name**: [Your Name Here]  
+- **GitHub**: [Your GitHub]  
+- **LinkedIn**: [Your LinkedIn]  
+- **Email**: [Your Email Address]
 
-- **Name**: Ahmed Raza
-- **Email**: ahemdraza810@gmail.com
-- **LinkedIn**: ahmeddraza
-- **GitHub**: ahmeddraza
+Feel free to contribute or fork this project to explore further enhancements!
 
