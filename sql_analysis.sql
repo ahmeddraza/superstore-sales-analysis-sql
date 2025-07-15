@@ -1,4 +1,5 @@
 -- What are the top 3 most profitable products in each product category?
+
 SELECT * 
 FROM (
     SELECT 
@@ -13,6 +14,7 @@ WHERE t.rank_ < 4
 ORDER BY Category, rank_ DESC;
 
 -- Which customers generated above-average total profit compared to all customers?
+
 WITH customer_profit AS (
     SELECT 
         Customer_Name,
@@ -32,6 +34,7 @@ WHERE total_profit > (
 ORDER BY total_profit DESC;
 
 -- What is the average delivery time (days between order and shipping) per customer segment?
+
 SELECT Segment,  AVG(DATEDIFF(Ship_Date,Order_Date)) AS 'Avg_delivery'FROM projects.superstore
 GROUP BY Segment;
 
@@ -57,6 +60,7 @@ FROM (
         ORDER BY region, City;
 
 -- What is the best-selling sub-category (by quantity) in each region?
+
 SELECT 
     region, 
     sub_category, 
@@ -73,8 +77,7 @@ FROM (
 ORDER BY region, rank_;
 
 -- What is the average profit per product with and without discount, and how does discount affect profit?
-SELECT * FROM projects.superstore;
--- CTE 1: Avg profit with discount
+
 WITH with_discount AS (
     SELECT 
         Product_Name,
@@ -84,7 +87,6 @@ WITH with_discount AS (
     GROUP BY Product_Name
 ),
 
--- CTE 2: Avg profit without discount
 without_discount AS (
     SELECT 
         Product_Name,
@@ -94,7 +96,6 @@ without_discount AS (
     GROUP BY Product_Name
 )
 
--- Combine both CTEs using FULL OUTER JOIN workaround
 SELECT 
     COALESCE(wd.Product_Name, wod.Product_Name) AS Product_Name,
     wd.avg_profit_with_discount,
@@ -127,7 +128,6 @@ ORDER BY profit_percentage DESC;
 
 -- Which products have increasing or decreasing monthly sales trends?
 
--- Step 1: Calculate monthly sales per product
 WITH monthly_sales AS (
     SELECT 
         Product_Name,
