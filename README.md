@@ -202,8 +202,8 @@ If you have suggestions or want to add more advanced queries or visualizations, 
 
 ## About the Author
 
-- **Name**: [Your Name Here]
-- **Email**: [Your Email]
-- **LinkedIn**: [Your LinkedIn]
-- **GitHub**: [Your GitHub Username]
+- **Name**: Ahmed Raza
+- **Email**: ahemdraza810@gmail.com
+- **LinkedIn**: ahmeddraza
+- **GitHub**: ahmeddraza
 
